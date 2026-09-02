@@ -1,13 +1,38 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import os
 import gdown
 from moviepy import VideoFileClip
 
-# Page Configuration (Wide Mode)
+# Page Configuration (Wide Layout)
 st.set_page_config(page_title="Kazmi Cloud Video Studio", page_icon="🎬", layout="wide")
 
-st.title("🎬 Kazmi Cloud Video Studio - Pro Timeline")
+# 🎨 Custom CSS: Streamlit slider ko CapCut jaisa modern aur glowing banane ke liye
+st.markdown("""
+<style>
+div[data-baseweb="slider"] {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+/* Playhead Handle Design (CapCut Style White/Cyan Bar) */
+div[data-baseweb="slider"] div[role="slider"] {
+    width: 10px !important;
+    height: 32px !important;
+    border-radius: 4px !important;
+    background-color: #ffffff !important;
+    border: 1px solid #00f2fe !important;
+    box-shadow: 0 0 12px rgba(0,242,254,0.8) !important;
+    cursor: ew-resize !important;
+}
+/* Active Track Progress Color */
+div[data-baseweb="slider"] > div > div > div:nth-child(1) {
+    background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🎬 Kazmi Cloud Video Studio - Pro Studio")
 
 # Helper: Seconds to MM:SS
 def format_time(seconds):
@@ -15,7 +40,7 @@ def format_time(seconds):
     remaining_seconds = int(seconds % 60)
     return f"{minutes:02d}:{remaining_seconds:02d}"
 
-# Helper: Safe Subclip for MoviePy compatibility
+# Helper: Safe Subclip
 def safe_subclip(clip, start, end):
     if hasattr(clip, 'subclipped'):
         return clip.subclipped(start, end)
@@ -72,56 +97,42 @@ if os.path.exists(output_path):
         render_btn = st.button("🚀 Render All Clips", use_container_width=True)
 
     with col_player:
-        st.subheader("🎥 Live Video Preview & Modern Timeline")
+        st.subheader("🎥 Live Video Preview & Connected Playhead")
         
         # Mode Selection
         edit_mode = st.radio("🛠️ Editing Tool:", ["✂️ Trim Range", "🔪 Multi-Split (Kai Tukron Mein Torna)"], horizontal=True)
         
-        # 🎨 Modern CapCut-Style JavaScript & HTML Playhead Timeline
-        timeline_html = f"""
-        <div style="background: #111; padding: 12px; border-radius: 8px; border: 1px solid #333; font-family: sans-serif;">
-            <div style="display: flex; justify-content: space-between; color: #00f2fe; font-size: 13px; margin-bottom: 6px; font-weight: bold;">
-                <span>00:00</span>
-                <span>CapCut Style Interactive Playhead</span>
-                <span>{format_time(duration)}</span>
-            </div>
-            <div id="timeline-track" style="position: relative; width: 100%; height: 36px; background: #1f2937; border-radius: 4px; cursor: pointer; border: 1px solid #4b5563;">
-                <div id="playhead" style="position: absolute; top: -4px; bottom: -4px; width: 6px; background: #ffffff; border-radius: 3px; box-shadow: 0 0 10px #00f2fe; left: 25%; cursor: ew-resize;">
-                    <div style="position: absolute; top: -6px; left: -4px; width: 14px; height: 10px; background: #00f2fe; clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
-                </div>
-            </div>
-            <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 6px;">Timeline bar ko drag kar ke ya click kar ke playhead position set karein</div>
-        </div>
-        """
-        components.html(timeline_html, height=110)
-
-        # Python Controls corresponding to timeline selections
+        # 🔗 DIRECTLY CONNECTED PLAYHEAD / SLIDER
         if "Trim" in edit_mode:
             start_time, end_time = st.slider(
-                "Trim Start & End Points:",
+                "🎚️ CapCut Style Timeline (Select Start & End):",
                 0.0, float(duration), (0.0, float(duration)), step=1.0
             )
-            st.info(f"📍 **Trim Selection:** `{format_time(start_time)}` ➔ `{format_time(end_time)}`")
+            st.info(f"📍 **Trim Selection:** Start: `{format_time(start_time)}` ➔ End: `{format_time(end_time)}`")
+            # Video automatically jumps to start_time when slider moves!
             st.video(output_path, start_time=int(start_time))
         else:
-            st.markdown("### 🔪 Multi-Split Configuration")
-            split_input = st.text_input("Splits ke timestamps seconds ya minutes mein commas daal kar likhein (Maslan: `300, 600, 1200`):", "300, 600")
-            st.info(f"💡 Yeh tool aapki video ko diye gaye points par ek sath **kai tukron mein** split kar dega!")
-            st.video(output_path)
+            split_time = st.slider(
+                "🎚️ Timeline Playhead (Preview & Split Point):",
+                0.0, float(duration), 0.0, step=1.0
+            )
+            split_input = st.text_input("Splits ke timestamps seconds ya minutes mein commas daal kar likhein (Maslan: `300, 600, 1200`):", str(int(split_time)))
+            st.info(f"🔪 **Current Playhead Position:** `{format_time(split_time)}` — Yeh tool diye gaye points par video ko multi-split kar dega!")
+            # Video jumps to the exact playhead position in split mode too!
+            st.video(output_path, start_time=int(split_time))
 
-    # 3. RENDERING ENGINE (Multiple Splits & Free Crop Support)
+    # 3. RENDERING ENGINE (Multi-Splits & Free Crop Support)
     if render_btn:
         original_clip = VideoFileClip(output_path)
         w, h = original_clip.size
         
-        # Crop processing logic function
         def apply_free_crop(clip_obj):
             if crop_mode == "Original (No Crop)":
                 return clip_obj
             cw, ch = clip_obj.size
             if "9:16" in crop_mode:
                 target_w = int(ch * 9 / 16)
-                x_c, y_c = cw / 2, ch / 2
+                x_c = cw / 2
                 return clip_obj.crop(x1=x_c - target_w/2, y1=0, x2=x_c + target_w/2, y2=ch)
             elif "1:1" in crop_mode:
                 target = min(cw, ch)
@@ -129,7 +140,7 @@ if os.path.exists(output_path):
                 return clip_obj.crop(x1=x_c - target/2, y1=y_c - target/2, x2=x_c + target/2, y2=y_c + target/2)
             elif "4:3" in crop_mode:
                 target_w = int(ch * 4 / 3)
-                x_c, y_c = cw / 2, ch / 2
+                x_c = cw / 2
                 return clip_obj.crop(x1=x_c - target_w/2, y1=0, x2=x_c + target_w/2, y2=ch)
             return clip_obj
 
@@ -151,16 +162,14 @@ if os.path.exists(output_path):
         else:
             with st.spinner("Video ko multiple hisson mein split aur render kiya ja raha hai..."):
                 try:
-                    # Parse user split points safely
                     user_splits = [0.0] + sorted([float(x.strip()) for x in split_input.split(",") if x.strip()]) + [float(duration)]
-                    # Remove duplicates or invalid bounds
                     user_splits = sorted(list(set([s for s in user_splits if 0 <= s <= duration])))
                     
                     split_files = []
                     for i in range(len(user_splits) - 1):
                         s_time = user_splits[i]
                         e_time = user_splits[i+1]
-                        if e_time - s_time < 1: # skip very small chunks
+                        if e_time - s_time < 1:
                             continue
                             
                         part_path = f"output_part_{i+1}.mp4"
@@ -175,9 +184,8 @@ if os.path.exists(output_path):
                         final_chunk.close()
                         chunk.close()
                     
-                    st.success(f"✅ Kamyabi se {len(split_files)} tukron (Parts) mein split ho gayi!")
+                    st.success(f"✅ Kamyabi se {len(split_files)} tukron mein split ho gayi!")
                     
-                    # Display and provide download buttons for all splits
                     for part_num, st_t, en_t, p_path in split_files:
                         st.markdown(f"**Part {part_num}** (`{format_time(st_t)}` ➔ `{format_time(en_t)}`)")
                         st.video(p_path)
