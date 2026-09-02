@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import gdown
 from moviepy import VideoFileClip
-from moviepy.video.fx import crop
 
 # Page Configuration
 st.set_page_config(page_title="Kazmi Cloud Video Editor", page_icon="🎬", layout="wide")
@@ -10,7 +9,6 @@ st.set_page_config(page_title="Kazmi Cloud Video Editor", page_icon="🎬", layo
 # 🎨 Custom CSS for Modern CapCut-Style Playhead
 st.markdown("""
 <style>
-/* Modern Slider / Playhead Design */
 div[data-baseweb="slider"] {
     padding-top: 15px !important;
 }
@@ -23,7 +21,6 @@ div[data-baseweb="slider"] div[role="slider"] {
     box-shadow: 0 0 8px rgba(0,242,254,0.6) !important;
     cursor: ew-resize !important;
 }
-/* CapCut Cyan Track Color */
 div[data-baseweb="slider"] > div > div > div:nth-child(1) {
     background-color: #00f2fe !important;
 }
@@ -38,29 +35,7 @@ def format_time(seconds):
     remaining_seconds = int(seconds % 60)
     return f"{minutes:02d}:{remaining_seconds:02d}"
 
-# Crop Helper Function
-def apply_crop(clip, preset):
-    if preset == "Original (No Crop)":
-        return clip
-    w, h = clip.size
-    try:
-        if preset == "1:1 (Square)":
-            target = min(w, h)
-            return crop(clip, width=target, height=target, x_center=w/2, y_center=h/2)
-        elif preset == "9:16 (Shorts/Reels)":
-            target_w = int(h * 9 / 16)
-            if target_w > w:  # Adjust if video is too narrow
-                target_h = int(w * 16 / 9)
-                return crop(clip, width=w, height=target_h, x_center=w/2, y_center=h/2)
-            return crop(clip, width=target_w, height=h, x_center=w/2, y_center=h/2)
-        elif preset == "4:3 (Classic)":
-            target_w = int(h * 4 / 3)
-            return crop(clip, width=target_w, height=h, x_center=w/2, y_center=h/2)
-    except Exception as e:
-        st.warning("Crop apply karte waqt masla aya. Original clip use ho rahi hai.")
-    return clip
-
-# Helper to safe subclip
+# Safe Subclip Helper
 def safe_subclip(clip, start, end):
     if hasattr(clip, 'subclipped'):
         return clip.subclipped(start, end)
@@ -109,10 +84,6 @@ if os.path.exists(output_path):
         st.markdown(f"**Frame Rate:** {fps} fps")
         
         st.divider()
-        st.subheader("📐 Frame Tools")
-        crop_preset = st.selectbox("Crop Aspect Ratio:", ["Original (No Crop)", "9:16 (Shorts/Reels)", "1:1 (Square)", "4:3 (Classic)"])
-        
-        st.divider()
         st.markdown("### ⚙️ Action")
         render_btn = st.button("🚀 Render Output", use_container_width=True)
 
@@ -145,30 +116,25 @@ if os.path.exists(output_path):
             with st.spinner("Video Trim aur Render ho rahi hai..."):
                 edited_path = "output_trimmed.mp4"
                 trimmed_clip = safe_subclip(original_clip, start_time, end_time)
-                final_clip = apply_crop(trimmed_clip, crop_preset)
-                final_clip.write_videofile(edited_path, codec="libx264", audio_codec="aac")
+                trimmed_clip.write_videofile(edited_path, codec="libx264", audio_codec="aac")
                 
                 st.success("✅ Trimmed Video Tayyar Hai!")
                 st.video(edited_path)
                 with open(edited_path, "rb") as f:
                     st.download_button("📥 Download Trimmed Video", data=f, file_name="kazmi_trimmed.mp4", mime="video/mp4")
                 
-                final_clip.close()
                 trimmed_clip.close()
         
         else:
-            with st.spinner("Video Split aur Render ho rahi hai (Is mein thora waqt lagega)..."):
+            with st.spinner("Video Split aur Render ho rahi hai..."):
                 part1_path = "output_part1.mp4"
                 part2_path = "output_part2.mp4"
                 
                 clip1 = safe_subclip(original_clip, 0, split_time)
                 clip2 = safe_subclip(original_clip, split_time, duration)
                 
-                final1 = apply_crop(clip1, crop_preset)
-                final2 = apply_crop(clip2, crop_preset)
-                
-                final1.write_videofile(part1_path, codec="libx264", audio_codec="aac")
-                final2.write_videofile(part2_path, codec="libx264", audio_codec="aac")
+                clip1.write_videofile(part1_path, codec="libx264", audio_codec="aac")
+                clip2.write_videofile(part2_path, codec="libx264", audio_codec="aac")
                 
                 st.success("✅ Video kamyabi se Split ho gayi!")
                 
@@ -182,8 +148,6 @@ if os.path.exists(output_path):
                     with open(part2_path, "rb") as f:
                         st.download_button("📥 Download Part 2", data=f, file_name="kazmi_part2.mp4", mime="video/mp4")
                 
-                final1.close()
-                final2.close()
                 clip1.close()
                 clip2.close()
 
