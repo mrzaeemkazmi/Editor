@@ -1,7 +1,7 @@
 streamlit
 numpy
-imageio
+imageio==2.31.6
 imageio-ffmpeg
-moviepy
+moviepy==1.0.3
 opencv-python
 requests
