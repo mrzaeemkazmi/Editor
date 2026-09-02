@@ -23,7 +23,7 @@ if drive_link:
                     os.remove(output_path)
                 
                 # gdown ke zariye Google Drive se video download karein
-                gdown.download(drive_link, output_path, quiet=False, fuzzy=True)
+                gdown.download(drive_link, output_path, quiet=False)
                 
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     st.success("🎉 Video Google Drive se kamyabi se import ho gayi hai!")
