@@ -6,13 +6,18 @@ from moviepy import VideoFileClip
 # Page Configuration (Wide Mode for Studio Look)
 st.set_page_config(page_title="Kazmi Cloud Video Editor", page_icon="🎬", layout="wide")
 
-st.title("🎬 Kazmi Cloud Video Studio")
+st.title("🎬 Kazmi Cloud Video Studio (Playhead & Time Format)")
 
-# 1. SIDEBAR PANEL (Like CapCut Media Import Panel)
+# Helper Function: Seconds ko Minutes:Seconds (MM:SS) mein convert karne ke liye
+fn format_time(seconds):
+    minutes = int(seconds // 60)
+    remaining_seconds = int(seconds % 60)
+    return f"{minutes:02d}:{remaining_seconds:02d}"
+
+# 1. SIDEBAR PANEL (Media Import)
 with st.sidebar:
     st.header("📁 Media & Import")
-    st.write("Google Drive se video import karein.")
-    drive_link = st.text_input("🔗 Drive Link:")
+    drive_link = st.text_input("🔗 Google Drive Shareable Link:")
     import_btn = st.button("📥 Import Video")
 
 output_path = "temp_video.mp4"
@@ -31,9 +36,8 @@ if import_btn and drive_link:
         except Exception as e:
             st.sidebar.error(f"Error: {e}")
 
-# 2. MAIN WORKSPACE (Player & Details Columns)
+# 2. MAIN WORKSPACE (Player & Details)
 if os.path.exists(output_path):
-    # Split screen into Player (left) and Details (right) like CapCut
     col_player, col_details = st.columns([2, 1])
 
     with col_player:
@@ -49,24 +53,27 @@ if os.path.exists(output_path):
             fps = clip.fps
             clip.close()
 
-            st.markdown(f"**Name:** temp_video.mp4")
-            st.markdown(f"**Duration:** {round(duration, 2)} sec")
+            st.markdown(f"**Duration:** {format_time(duration)} ({round(duration, 2)}s)")
             st.markdown(f"**Resolution:** {size[0]} x {size[1]}")
             st.markdown(f"**Frame Rate:** {fps} fps")
-            st.markdown(f"**Path:** Cloud Storage")
         except Exception as e:
             st.error("Details load nahi ho sakein.")
 
     st.divider()
 
-    # 3. TIMELINE & EDITING STUDIO (Bottom Panel)
-    st.subheader("✂️ Timeline & Trimming Studio")
+    # 3. PLAYHEAD & TIMELINE STUDIO (Bottom Panel with MM:SS)
+    st.subheader("✂️ Playhead & Timeline Studio")
     
     if 'duration' in locals():
+        # Trimming Slider with Seconds underlying value
         start_time, end_time = st.slider(
-            "Waqt ka intikhab karein (Trim karne ke liye seconds set karein):",
-            0.0, float(duration), (0.0, float(duration))
+            "Playhead Position (Minutes:Seconds select karein):",
+            0.0, float(duration), (0.0, float(duration)),
+            step=1.0
         )
+        
+        # Playhead Current Time Indicator Display (MM:SS Format)
+        st.info(f"📍 **Current Playhead / Selection:** Start: `{format_time(start_time)}` ➔ End: `{format_time(end_time)}` | (Selected Duration: `{format_time(end_time - start_time)}`)")
         
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
