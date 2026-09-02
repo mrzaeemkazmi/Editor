@@ -1,33 +1,43 @@
 import streamlit as st
 import os
-from moviepy import VideoFileClip, concatenate_videoclips
+import gdown
+from moviepy import VideoFileClip
 
 # Page Configuration
 st.set_page_config(page_title="Kazmi Cloud Video Editor", page_icon="🎬", layout="wide")
 
-st.title("🎬 Kazmi Cloud Video Editor")
-st.write("Apni videos ko yahan upload karein aur cloud par edit karein!")
+st.title("🎬 Kazmi Cloud Video Editor (Google Drive Integration)")
+st.write("Apni Google Drive ki video ka public link yahan paste karein!")
 
-# File Uploader
-uploaded_file = st.file_uploader("Aik video file select karein", type=["mp4", "mov", "avi", "mkv"])
+# Google Drive Link Input
+drive_link = st.text_input("🔗 Google Drive Shareable Link enter karein:")
 
-if uploaded_file is not None:
-    # Save video locally in temporary path
-    input_path = "temp_video.mp4"
-    with open(input_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    st.success("Video kamyabi se upload ho gayi hai!")
-    
-    # Preview Video
-    st.video(input_path)
-    
-    if st.button("Video Details Check Karein"):
-        with st.spinner("Video load ho rahi hai..."):
+if drive_link:
+    if st.button("📥 Drive se Video Download & Import Karein"):
+        with st.spinner("Google Drive se video download ho rahi hai... Thora intezaar karein!"):
             try:
-                clip = VideoFileClip(input_path)
-                st.info(f"⏱️ Duration: {round(clip.duration, 2)} seconds")
-                st.info(f"resolution: {clip.size}")
-                clip.close()
+                output_path = "temp_video.mp4"
+                
+                # Agar pehle se koi purani file ho toh delete kar dein
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                
+                # gdown ke zariye Google Drive se video download karein
+                gdown.download(drive_link, output_path, quiet=False, fuzzy=True)
+                
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    st.success("🎉 Video Google Drive se kamyabi se import ho gayi hai!")
+                    
+                    # Video Preview
+                    st.video(output_path)
+                    
+                    # Video Details
+                    clip = VideoFileClip(output_path)
+                    st.info(f"⏱️ Duration: {round(clip.duration, 2)} seconds")
+                    st.info(f"📐 Resolution: {clip.size}")
+                    clip.close()
+                else:
+                    st.error("❌ Video download nahi ho saki. Please check karein ke aapka Google Drive link 'Anyone with the link can view' par set hai ya nahi.")
+            
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Error aa gaya: {e}")
