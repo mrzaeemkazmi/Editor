@@ -1,4 +1,7 @@
 streamlit
+numpy
+imageio-ffmpeg
 moviepy
 opencv-python
 requests
+gdown
