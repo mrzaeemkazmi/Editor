@@ -9,7 +9,7 @@ st.set_page_config(page_title="Kazmi Cloud Video Editor", page_icon="🎬", layo
 st.title("🎬 Kazmi Cloud Video Studio (Playhead & Time Format)")
 
 # Helper Function: Seconds ko Minutes:Seconds (MM:SS) mein convert karne ke liye
-fn format_time(seconds):
+def format_time(seconds):
     minutes = int(seconds // 60)
     remaining_seconds = int(seconds % 60)
     return f"{minutes:02d}:{remaining_seconds:02d}"
